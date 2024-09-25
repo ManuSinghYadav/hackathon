@@ -13,6 +13,11 @@ from dotenv import load_dotenv
 import statistics
 from google.cloud import bigquery
 from google.oauth2 import service_account
+from typing import List, Optional
+from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
+import base64
+import vertexai
+from vertexai.generative_models import GenerativeModel, SafetySetting, Part
 
 # Load environment variables from .env file
 load_dotenv()
@@ -45,22 +50,49 @@ index = pinecone.Index(INDEX_NAME)
 openai.api_key = OPENAI_API_KEY
 
 # embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
-def get_embedding(text):
-    response = openai.embeddings.create(
-        input=text,
-        model="text-embedding-ada-002"
-    )
-    return response.data[0].embedding
+# def get_embedding(text):
+#     response = openai.embeddings.create(
+#         input=text,
+#         model="text-embedding-ada-002"
+#     )
+#     return response.data[0].embedding
+
+def get_embedding(
+    texts: list = None,
+    task: str = "RETRIEVAL_DOCUMENT",
+    dimensionality: Optional[int] = 256,
+) -> List[List[float]]:
+
+    if texts is None:
+        return None
+    model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+    inputs = [TextEmbeddingInput(text, task) for text in texts]
+    kwargs = dict(output_dimensionality=dimensionality) if dimensionality else {}
+    embeddings = model.get_embeddings(inputs, **kwargs)
+    return [embedding.values for embedding in embeddings]
+
+
 # llm = OpenAI(model_name="gpt-4-turbo", openai_api_key=OPENAI_API_KEY)
+# def generate_text(prompt):
+#     response = openai.chat.completions.create(
+#         model="gpt-4-turbo",
+#         messages=[{"role": "user", "content": prompt}],
+#         max_tokens=1000
+#     )
+#     return response.choices[0].message.content
 
 def generate_text(prompt):
-    response = openai.chat.completions.create(
-        model="gpt-4-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=1000
-    )
-    return response.choices[0].message.content
+    vertexai.init(project="rag-learn-435708", location="us-central1")
+    model = GenerativeModel("gemini-1.5-flash-001")
+    chat = model.start_chat()
+    output = chat.send_message([prompt], generation_config=generation_config)
+    return output.candidates[0].content.parts[0].text
 
+generation_config = {
+    "max_output_tokens": 8192,
+    "temperature": 1,
+    "top_p": 0.95,
+}
 
 # Replace usage of `llm` with `generate_text`
 
