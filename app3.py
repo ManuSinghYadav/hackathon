@@ -101,7 +101,7 @@ generation_config = {
 def create_pinecone_store(index):
     # Define a lambda or function to get embeddings
     def embed_query(text):
-        return get_embedding(text)
+        return get_embedding([text])
     # Pass the lambda function to PineconeVectorStore
     return PineconeVectorStore(index=index, embedding=embed_query, text_key="description", namespace="ns1")
 
