@@ -18,6 +18,7 @@ from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
 import base64
 import vertexai
 from vertexai.generative_models import GenerativeModel, SafetySetting, Part
+from typing import List, Optional, Union
 
 # Load environment variables from .env file
 load_dotenv()
@@ -58,13 +59,17 @@ openai.api_key = OPENAI_API_KEY
 #     return response.data[0].embedding
 
 def get_embedding(
-    texts: list = None,
+    texts: Union[str, List[str]],
     task: str = "RETRIEVAL_DOCUMENT",
-    dimensionality: Optional[int] = 256,
+    dimensionality: Optional[int] = 712,
 ) -> List[List[float]]:
-
-    if texts is None:
+    
+    if isinstance(texts, str):
+        texts = [texts]
+    
+    if not texts:
         return None
+    
     model = TextEmbeddingModel.from_pretrained("text-embedding-004")
     inputs = [TextEmbeddingInput(text, task) for text in texts]
     kwargs = dict(output_dimensionality=dimensionality) if dimensionality else {}
